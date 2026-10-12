@@ -52,13 +52,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
+        with:
+          name: model
+          path: .
       - name: Set lowercase image name
         run: |
           USER_LC=$(echo "${{ secrets.DOCKERHUB_USERNAME || 'local' }}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
           echo "IMAGE=${USER_LC}/churn-mlops-api" >> "$GITHUB_ENV"
-        with:
-          name: model
-          path: .
       - uses: docker/setup-buildx-action@v3
       - name: Build image (local, for scanning)
         uses: docker/build-push-action@v6
@@ -112,7 +112,7 @@ jobs:
             docker rm -f churn-api || true
             docker run -d --name churn-api --restart unless-stopped -p 80:8000 \
               ${{ env.IMAGE }}:${{ github.sha }}
-            # Smoke test: roll back the pipeline (fail) if the new container is unhealthy.
+            # Smoke test: fail the pipeline if the new container is unhealthy.
             for i in $(seq 1 15); do
               curl -fs http://localhost/health && exit 0
               sleep 2
