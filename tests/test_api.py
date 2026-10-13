@@ -69,3 +69,9 @@ def test_metrics_endpoint_exposes_prometheus_format(client):
     r = client.get("/metrics")
     assert r.status_code == 200
     assert "predictions_total" in r.text and "churn_probability_bucket" in r.text
+
+
+def test_homepage_serves_ui(client):
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "Churn risk" in r.text

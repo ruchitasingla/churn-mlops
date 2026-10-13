@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Churn risk</title>
+<style>
+:root{
+  --ink:#14213d; --mist:#f3f5f9; --line:#d7dde8; --muted:#5b6678;
+  --low:#17a58f; --mid:#e9a23b; --high:#d9484f; --panel:#14213d; --on-panel:#f3f5f9;
+  --sans:"Avenir Next","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--mist);color:var(--ink);font-family:var(--sans);line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:40px 24px 56px;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:48px;align-items:start}
+h1{font-family:var(--serif);font-size:2.4rem;line-height:1.1;margin:0 0 8px;font-weight:600}
+.lede{margin:0 0 28px;color:var(--muted);max-width:46ch}
+.presets{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap}
+button.preset{font:inherit;font-size:.9rem;padding:8px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);border-radius:999px;cursor:pointer}
+button.preset:hover{background:var(--ink);color:var(--mist)}
+fieldset{border:0;border-top:1px solid var(--line);margin:0;padding:20px 0 8px}
+legend{font-family:var(--serif);font-size:1.15rem;font-weight:600;padding:0 12px 0 0}
+.row{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:4px 12px;margin-bottom:18px}
+.row label,.row .lab{font-size:.95rem}
+output{font-variant-numeric:tabular-nums;font-weight:600}
+.row input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--ink)}
+input[type=number],select{font:inherit;width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+.field{margin-bottom:18px}
+.field>label,.field>.lab{display:block;font-size:.95rem;margin-bottom:6px}
+.segs{display:flex;border:1px solid var(--ink);border-radius:8px;overflow:hidden}
+.segs label{flex:1;position:relative;text-align:center;font-size:.9rem;cursor:pointer}
+.segs input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.segs span{display:block;padding:9px 6px}
+.segs input:checked+span{background:var(--ink);color:var(--mist)}
+.segs label+label{border-left:1px solid var(--ink)}
+:focus-visible{outline:3px solid var(--mid);outline-offset:2px}
+.segs label:has(:focus-visible){outline:3px solid var(--mid);outline-offset:-3px}
+.result{position:sticky;top:24px;background:var(--panel);color:var(--on-panel);border-radius:20px;padding:28px 24px 24px;text-align:center}
+.result h2{font-family:var(--serif);font-size:1.15rem;font-weight:600;margin:0 0 4px}
+svg{width:100%;height:auto;display:block;margin:8px auto 0}
+.needle{transform-box:view-box;transform-origin:150px 150px;transition:transform .9s cubic-bezier(.2,.9,.3,1.15)}
+.pct{font-family:var(--serif);font-size:3.6rem;line-height:1;margin:-6px 0 6px;font-variant-numeric:tabular-nums}
+.band{font-weight:600;font-size:1.05rem}
+.verdict{margin:4px 0 0;color:#c4cbd9}
+.note{margin:22px 0 0;padding-top:14px;border-top:1px solid #2c3b60;font-size:.8rem;color:#9fa9bf}
+.err{color:#ffb4b8;font-size:.95rem;margin-top:12px;min-height:1.4em}
+@media (max-width:860px){.wrap{grid-template-columns:1fr;gap:28px;padding-top:28px}.result{position:static;order:-1}}
+@media (prefers-reduced-motion:reduce){.needle{transition:none}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <form id="form" autocomplete="off" onsubmit="return false">
+    <h1>Will this customer stay?</h1>
+    <p class="lede">Describe a customer and the model estimates how likely they are to leave. The result updates as you change anything.</p>
+
+    <div class="presets">
+      <button type="button" class="preset" data-preset="loyal">Try a loyal customer</button>
+      <button type="button" class="preset" data-preset="risky">Try an at-risk customer</button>
+    </div>
+
+    <fieldset>
+      <legend>Account history</legend>
+      <div class="row"><label for="tenure_months">Months as a customer</label><output id="o_tenure" for="tenure_months"></output>
+        <input type="range" id="tenure_months" min="0" max="72" value="12"></div>
+      <div class="row"><label for="support_tickets">Support tickets opened</label><output id="o_tickets" for="support_tickets"></output>
+        <input type="range" id="support_tickets" min="0" max="15" value="2"></div>
+      <div class="row"><label for="avg_monthly_usage_gb">Data used per month</label><output id="o_usage" for="avg_monthly_usage_gb"></output>
+        <input type="range" id="avg_monthly_usage_gb" min="5" max="400" value="110"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Billing</legend>
+      <div class="row"><label for="monthly_charges">Monthly bill</label><output id="o_monthly" for="monthly_charges"></output>
+        <input type="range" id="monthly_charges" min="15" max="150" step="0.5" value="79.5"></div>
+      <div class="field"><label for="total_charges">Total billed so far</label>
+        <input type="number" id="total_charges" min="0" step="1" value="950"></div>
+      <div class="field"><label for="payment_method">Payment method</label>
+        <select id="payment_method">
+          <option value="credit-card">Credit card</option>
+          <option value="bank-transfer">Bank transfer</option>
+          <option value="e-wallet">E-wallet</option>
+          <option value="mailed-check">Mailed check</option>
+        </select></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Plan</legend>
+      <div class="field"><div class="lab" id="l_contract">Contract</div>
+        <div class="segs" role="radiogroup" aria-labelledby="l_contract">
+          <label><input type="radio" name="contract_type" value="month-to-month" checked><span>Monthly</span></label>
+          <label><input type="radio" name="contract_type" value="one-year"><span>1 year</span></label>
+          <label><input type="radio" name="contract_type" value="two-year"><span>2 years</span></label>
+        </div></div>
+      <div class="field"><div class="lab" id="l_backup">Has internet backup</div>
+        <div class="segs" role="radiogroup" aria-labelledby="l_backup">
+          <label><input type="radio" name="has_internet_backup" value="yes" checked><span>Yes</span></label>
+          <label><input type="radio" name="has_internet_backup" value="no"><span>No</span></label>
+        </div></div>
+    </fieldset>
+  </form>
+
+  <aside class="result" aria-live="polite">
+    <h2>Churn risk</h2>
+    <svg viewBox="0 0 300 175" role="img" aria-label="Risk dial">
+      <g id="bands" fill="none" stroke-width="22" stroke-linecap="butt"></g>
+      <g class="needle" id="needle" style="transform:rotate(-90deg)">
+        <line x1="150" y1="150" x2="150" y2="48" stroke="#f3f5f9" stroke-width="4" stroke-linecap="round"/>
+      </g>
+      <circle cx="150" cy="150" r="10" fill="#f3f5f9"/>
+    </svg>
+    <div class="pct" id="pct">--</div>
+    <div class="band" id="band">Scoring</div>
+    <p class="verdict" id="verdict">&nbsp;</p>
+    <div class="err" id="err" role="alert"></div>
+    <p class="note" id="note">Estimates come from a model trained on synthetic data. Use them to compare profiles, not to judge real people.</p>
+  </aside>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const R = 120, CX = 150, CY = 150;
+const pt = f => [CX + R * Math.cos(Math.PI * (1 - f)), CY - R * Math.sin(Math.PI * (1 - f))];
+const arc = (a, b, color) => {
+  const [x0, y0] = pt(a), [x1, y1] = pt(b);
+  return `<path d="M${x0} ${y0} A${R} ${R} 0 0 1 ${x1} ${y1}" stroke="${color}"/>`;
+};
+$('bands').innerHTML = arc(0, .3, 'var(--low)') + arc(.3, .5, 'var(--mid)') + arc(.5, 1, 'var(--high)');
+
+const num = ['tenure_months', 'monthly_charges', 'total_charges', 'support_tickets', 'avg_monthly_usage_gb'];
+const fmt = {
+  tenure_months: v => `${v} months`, support_tickets: v => `${v}`,
+  avg_monthly_usage_gb: v => `${v} GB`, monthly_charges: v => `$${Number(v).toFixed(2)}`
+};
+const outs = { tenure_months: 'o_tenure', support_tickets: 'o_tickets', avg_monthly_usage_gb: 'o_usage', monthly_charges: 'o_monthly' };
+let totalTouched = false, timer, seq = 0;
+
+function readouts() { for (const k in outs) $(outs[k]).textContent = fmt[k]($(k).value); }
+function syncTotal() {
+  if (!totalTouched) $('total_charges').value = Math.round($('tenure_months').value * $('monthly_charges').value);
+}
+function payload() {
+  const p = {};
+  num.forEach(k => p[k] = Number($(k).value));
+  p.payment_method = $('payment_method').value;
+  p.contract_type = document.querySelector('[name=contract_type]:checked').value;
+  p.has_internet_backup = document.querySelector('[name=has_internet_backup]:checked').value;
+  return p;
+}
+
+async function score() {
+  const mine = ++seq;
+  try {
+    const res = await fetch('/predict', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload()) });
+    if (!res.ok) throw new Error(res.status === 422 ? 'Some values are outside the range the model accepts. Adjust them and try again.' : 'The service could not score this profile. Try again in a moment.');
+    const d = await res.json();
+    if (mine !== seq) return;
+    show(d);
+  } catch (e) {
+    if (mine !== seq) return;
+    $('err').textContent = e.message.startsWith('Failed') ? 'Cannot reach the service. Check that the API is running.' : e.message;
+  }
+}
+
+function show(d) {
+  $('err').textContent = '';
+  const p = d.churn_probability;
+  $('needle').style.transform = `rotate(${p * 180 - 90}deg)`;
+  $('pct').textContent = `${Math.round(p * 100)}%`;
+  const [label, color] = p < .3 ? ['Low risk', 'var(--low)'] : p < .5 ? ['Moderate risk', 'var(--mid)'] : ['High risk', 'var(--high)'];
+  $('band').textContent = label; $('band').style.color = color;
+  $('verdict').textContent = d.will_churn ? 'This customer is likely to leave.' : 'This customer is likely to stay.';
+  if (d.model_roc_auc) $('note').textContent = `Model ROC AUC ${d.model_roc_auc.toFixed(2)}. Trained on synthetic data, so use estimates to compare profiles, not to judge real people.`;
+}
+
+function changed(e) {
+  if (e && e.target.id === 'total_charges') totalTouched = true;
+  if (e && (e.target.id === 'tenure_months' || e.target.id === 'monthly_charges')) syncTotal();
+  readouts();
+  clearTimeout(timer); timer = setTimeout(score, 200);
+}
+$('form').addEventListener('input', changed);
+
+const presets = {
+  loyal: { tenure_months: 60, monthly_charges: 40, total_charges: 2400, support_tickets: 0, avg_monthly_usage_gb: 110, payment_method: 'credit-card', contract_type: 'two-year', has_internet_backup: 'yes' },
+  risky: { tenure_months: 3, monthly_charges: 95, total_charges: 285, support_tickets: 5, avg_monthly_usage_gb: 80, payment_method: 'e-wallet', contract_type: 'month-to-month', has_internet_backup: 'no' }
+};
+document.querySelectorAll('.preset').forEach(b => b.addEventListener('click', () => {
+  const v = presets[b.dataset.preset];
+  num.forEach(k => $(k).value = v[k]);
+  $('payment_method').value = v.payment_method;
+  document.querySelector(`[name=contract_type][value="${v.contract_type}"]`).checked = true;
+  document.querySelector(`[name=has_internet_backup][value="${v.has_internet_backup}"]`).checked = true;
+  totalTouched = true; changed();
+}));
+
+readouts(); score();
+</script>
+</body>
+</html>

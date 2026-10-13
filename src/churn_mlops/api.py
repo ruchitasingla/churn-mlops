@@ -3,11 +3,13 @@
 import json
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Literal
 
 import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import FileResponse
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
     Counter,
@@ -30,6 +32,7 @@ CHURN_PROBABILITY = Histogram(
 MODEL_ROC_AUC = Gauge("model_roc_auc", "ROC AUC of the model currently being served")
 
 state: dict = {"model": None, "metrics": None}
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 def load_model() -> None:
@@ -101,3 +104,8 @@ def predict(customer: Customer):
 @app.get("/metrics")
 def metrics():
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+@app.get("/", include_in_schema=False)
+def index():
+    return FileResponse(STATIC_DIR / "index.html")
