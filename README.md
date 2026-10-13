@@ -57,7 +57,7 @@ flowchart LR
 
 **Live deployment on AWS EC2**: a prediction served by the container the pipeline built, scanned and deployed.
 
-![Live API](docs/live-EC2.png)
+![Live API](docs/live-ec2.png)
 
 ## Quickstart
 
