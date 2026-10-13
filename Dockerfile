@@ -7,7 +7,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # API only needs the serving deps; MLflow is for training and lives in its own image.
 COPY requirements.txt .
 RUN grep -v '^mlflow' requirements.txt > requirements-serve.txt \
-    && pip install -r requirements-serve.txt
+        && pip install --default-timeout=100 --retries 5 -r requirements-serve.txt
 
 # ---- runtime: small image, non-root user ----
 FROM python:3.12-slim

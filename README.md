@@ -99,8 +99,9 @@ docker compose up --build -d     # api :8000 | mlflow :5000 | prometheus :9090 |
 python scripts/send_traffic.py --n 200                # normal traffic
 python scripts/send_traffic.py --n 200 --drift 1.0    # drifted traffic
 ```
+Drifted traffic (customers who are newer, pay more and raise more tickets than the training data) shifts the model's output distribution. In the Grafana chart below, the **median predicted churn probability** rises from about 0.25 under normal traffic to about 0.45 when drifted traffic arrives, with no change to the model. This is the signal a monitoring job would use to trigger retraining.
 
-The drifted traffic shifts the `churn_probability` histogram in Prometheus, which is how a stale model would show up in production.
+![Grafana drift](docs/grafana-drift.png)
 
 ## The quality gate
 
