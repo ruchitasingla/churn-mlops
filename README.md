@@ -55,6 +55,10 @@ flowchart LR
 |---|---|
 | ![risky](docs/swagger-risky.png) | ![loyal](docs/swagger-loyal.png) |
 
+**Live deployment on AWS EC2**: a prediction served by the container the pipeline built, scanned and deployed.
+
+![Live API](docs/live-ec2.png)
+
 ## Quickstart
 
 Requires Python 3.10+.
