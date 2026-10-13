@@ -7,7 +7,7 @@ A customer-churn model taken from training to a published, scanned container ima
 Every push to `main` is linted, tested, retrained, gated, built, scanned, and pushed to Docker Hub automatically.
 
 ![Pipeline](docs/pipeline.png)
-![Churn risk UI](docs/ui.png)
+![Churn risk UI](docs/UI.png)
 
 ## Architecture
 
