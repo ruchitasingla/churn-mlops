@@ -75,6 +75,14 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "1"
+      - name: Check Docker Hub secrets are set
+        if: github.ref == 'refs/heads/main'
+        env:
+          U: ${{ secrets.DOCKERHUB_USERNAME }}
+          T: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          [ -n "$U" ] && echo "username: set" || echo "username: MISSING"
+          [ -n "$T" ] && echo "token: set" || echo "token: MISSING"
       - name: Log in to Docker Hub
         if: github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
